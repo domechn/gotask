@@ -18,7 +18,7 @@ func TestTask(t *testing.T) {
 	})
 	AddToTaskList(tk)
 	select {
-	case <-time.After(time.Second * 2):
+	case <-time.After(time.Second*1 + time.Millisecond*100):
 		if len(p) != 1 {
 			t.Errorf("TestTask() fail , need len : %d , actually len : %d", 1, len(p))
 		}

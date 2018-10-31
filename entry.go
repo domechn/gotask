@@ -6,6 +6,7 @@
 package gotask
 
 import (
+	"fmt"
 	"sort"
 	"time"
 )
@@ -55,6 +56,27 @@ func (tl *taskList) stop(id string) {
 			tl.taskers = append(tl.taskers[:k], tl.taskers[k+1:]...)
 		}
 	}
+}
+
+func ChangeInterval(id string, interval time.Duration) error {
+	tsk := tasks.get(id)
+	if tsk != nil {
+		t, ok := tsk.(*Task)
+		if !ok {
+			return fmt.Errorf("该类型不支持修改执行间隔")
+		}
+		t.SetInterval(interval)
+	}
+	return nil
+}
+
+func (tl *taskList) get(id string) Tasker {
+	for _, v := range tl.taskers {
+		if v.ID() == id {
+			return v
+		}
+	}
+	return nil
 }
 
 func doAllTask() {
