@@ -38,6 +38,9 @@ func init() {
 
 // AddToTaskList 加入任务列表
 func AddToTaskList(t Tasker) {
+	if t == nil {
+	        return
+	}
 	addC <- t
 }
 
