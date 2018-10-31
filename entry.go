@@ -1,4 +1,4 @@
-// Copyright (c) 2018, dmc (814172254@qq.com),
+// Package gotask Copyright (c) 2018, dmc (814172254@qq.com),
 //
 // Authors: dmc,
 //
@@ -6,59 +6,52 @@
 package gotask
 
 import (
-    "fmt"
-    "time"
+	"sort"
+	"time"
 )
 
-type Tasks []*Task
+// Tasks 任务列表
+type Tasks []Tasker
 
 func (s Tasks) Len() int      { return len(s) }
 func (s Tasks) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s Tasks) Less(i, j int) bool {
-	return s[i].executeTime.Before(s[j].executeTime)
+	return s[i].ExecuteTime().Before(s[j].ExecuteTime())
 }
 
 type taskList struct {
 	// 所有任务列表
 	taskers Tasks
-
-	// 最近执行的任务的时间
-	nestedTime time.Time
 }
 
 var (
 	tasks *taskList
-	addC  = make(chan *Task)
+	addC  = make(chan Tasker)
 	stopC = make(chan string)
 )
 
 func init() {
-	tasks = &taskList{
-		nestedTime: time.Now(),
-	}
+	tasks = &taskList{}
 	go doAllTask()
 }
 
 // AddToTaskList 加入任务列表
-func AddToTaskList(t *Task) {
+func AddToTaskList(t Tasker) {
 	addC <- t
 }
 
-func (tl *taskList) addToTaskList(t *Task) {
+func (tl *taskList) addToTaskList(t Tasker) {
 	tl.taskers = append(tl.taskers, t)
-
-	if t.executeTime.Before(tl.nestedTime) && t.executeTime.After(time.Now()) {
-		tl.nestedTime = t.executeTime
-	}
 }
 
+// Stop 通过task的id停止对应task
 func Stop(id string) {
 	stopC <- id
 }
 
 func (tl *taskList) stop(id string) {
 	for k, v := range tl.taskers {
-		if v.id == id {
+		if v.ID() == id {
 			tl.taskers = append(tl.taskers[:k], tl.taskers[k+1:]...)
 		}
 	}
@@ -69,25 +62,24 @@ func doAllTask() {
 
 	var now time.Time
 	for {
-		// sort.Sort(tasks.taskers)
+		sort.Sort(tasks.taskers)
 
 		now = time.Now()
 
 		if len(tasks.taskers) == 0 {
 			timer = time.NewTimer(time.Hour * 100000)
 		} else {
-			sub := tasks.nestedTime.Sub(now)
-			fmt.Println(sub)
-			timer = time.NewTimer(-sub)
-			// timer = time.NewTimer(time.Second*2)
+			sub := tasks.taskers[0].ExecuteTime().Sub(now)
+			if sub < 0 {
+				sub = 0
+			}
+			timer = time.NewTimer(sub)
 		}
 
 		for {
 			select {
 			case now = <-timer.C:
-				if tasks.nestedTime.Before(now) {
-					doNestedTask()
-				}
+				doNestedTask()
 			case t := <-addC:
 				now = time.Now()
 				timer.Stop()
@@ -102,9 +94,9 @@ func doAllTask() {
 
 func doNestedTask() {
 	for _, v := range tasks.taskers {
-		if v.executeTime.Before(time.Now()) {
-			go v.do()
-			v.executeTime = v.executeTime.Add(v.interval)
+		if v.ExecuteTime().Before(time.Now()) {
+			go v.Do()()
+			v.RefreshExecuteTime()
 		} else {
 			return
 		}

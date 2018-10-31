@@ -5,6 +5,10 @@
 // Distribution:.
 package gotask
 
+import (
+	"time"
+)
+
 type parserType string
 
 const (
@@ -14,7 +18,7 @@ const (
 
 type Parser interface {
 	// Parse 解析定时执行的时间
-	Parse(string) (string, error)
+	Parse(string) (time.Time, error)
 }
 
 func newTimeParser(pt parserType) Parser {

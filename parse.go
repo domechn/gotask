@@ -6,46 +6,80 @@
 package gotask
 
 import (
-    "errors"
-    "strings"
+	"errors"
+	"strconv"
+	"strings"
+	"time"
 )
 
 var (
-    errParseTime = errors.New("parse time error")
+	errParseTime = errors.New("parse time error")
 )
+
+var defaultValue = time.Time{}
 
 type dayParse struct {
 }
 
 func newDayParse() Parser {
-    return &dayParse{}
+	return &dayParse{}
 }
 
-// Parse 接收格式 "hh:mm:ss"
-func (p *dayParse) Parse(s string) (string, error) {
-    ss := strings.Split(s,":")
-    if len(ss) != 3 {
-        return "",errParseTime
-    }
-    return "",nil
+// Parse 接收格式 "hh:mm:ss",返回begintime
+func (p *dayParse) Parse(s string) (time.Time, error) {
+	ss := strings.Split(s, ":")
+	if len(ss) != 3 {
+		return defaultValue, errParseTime
+	}
+	var hour, minute, second int
+	var err error
+	if hour, err = strconv.Atoi(ss[0]); err != nil {
+		return defaultValue, errParseTime
+	}
+	if minute, err = strconv.Atoi(ss[1]); err != nil {
+		return defaultValue, errParseTime
+	}
+	if second, err = strconv.Atoi(ss[2]); err != nil {
+		return defaultValue, errParseTime
+	}
+	now := time.Now()
+	t := time.Date(now.Year(), now.Month(), now.Day(), hour, minute, second, 0, now.Location())
+	return t, nil
 }
 
 type monthParse struct {
 }
 
 func newMonthParse() Parser {
-    return &monthParse{}
+	return &monthParse{}
 }
 
 // Parse 接收格式 dd mm:hh:ss   dd为每月几号，如果需要每月最后一天 dd=-1
-func (p *monthParse) Parse(s string) (string, error) {
-    ss := strings.SplitN(s," ",2)
-    s1 := strings.Split(ss[1],":")
-    if len(s1) != 3 {
-        return "",errParseTime
-    }
-    return "",nil
+func (p *monthParse) Parse(s string) (time.Time, error) {
+	s2 := strings.Split(s, " ")
+	if len(s2) != 2 {
+		return defaultValue, errParseTime
+	}
+	ss := strings.Split(s2[1], ":")
+	if len(ss) != 3 {
+		return defaultValue, errParseTime
+	}
+	var day int
+	var hour, minute, second int
+	var err error
+	if day, err = strconv.Atoi(s2[0]); err != nil {
+		return defaultValue, errParseTime
+	}
+	if hour, err = strconv.Atoi(ss[0]); err != nil {
+		return defaultValue, errParseTime
+	}
+	if minute, err = strconv.Atoi(ss[1]); err != nil {
+		return defaultValue, errParseTime
+	}
+	if second, err = strconv.Atoi(ss[2]); err != nil {
+		return defaultValue, errParseTime
+	}
+	now := time.Now()
+	t := time.Date(now.Year(), now.Month(), day, hour, minute, second, 0, now.Location())
+	return t, nil
 }
-
-
-
