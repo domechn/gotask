@@ -23,7 +23,7 @@ type Task struct {
 
 // NewTask 新建轮询任务
 func NewTask(t time.Duration, do func()) Tasker {
-	uid, _ := uuid.NewV4()
+	uid := uuid.NewV4()
 	return &Task{
 		id:          uid.String(),
 		do:          do,
@@ -63,7 +63,7 @@ type DayTask struct {
 
 // NewDayTask 新建日任务
 func NewDayTask(tm string, do func()) (Tasker, error) {
-	uid, _ := uuid.NewV4()
+	uid := uuid.NewV4()
 	pt := newTimeParser(dayParseType)
 	begin, err := pt.Parse(tm)
 	if err != nil {
@@ -118,7 +118,7 @@ type MonthTask struct {
 
 // NewMonthTask 初始化一个每月执行的函数
 func NewMonthTask(tm string, do func()) (Tasker, error) {
-	uid, _ := uuid.NewV4()
+	uid := uuid.NewV4()
 	pt := newTimeParser(monthParseType)
 	begin, err := pt.Parse(tm)
 	if err != nil {
