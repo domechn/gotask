@@ -6,7 +6,9 @@
 package gotask
 
 import (
+	"fmt"
 	"testing"
+	"time"
 )
 
 var dayCase = []struct {
@@ -67,4 +69,8 @@ func TestMonthParse_Parse(t *testing.T) {
 			t.Errorf("name:%s appears error:%+v , want:%+v\n", v.name, err, v.want)
 		}
 	}
+	ts := time.Date(2018, 2, 28, 0, 0, 0, 0, time.Now().Location())
+	ts = ts.AddDate(0, 1, 0)
+	fmt.Println(ts)
+
 }

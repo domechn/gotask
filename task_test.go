@@ -28,13 +28,22 @@ func TestTask(t *testing.T) {
 
 func TestDayTask(t *testing.T) {
 	var p []int
-	tk, _ := NewDayTask("00:00:00", func() {
+	tks, _ := NewDayTasks([]string{"00:00:00", "12:00:00", "08:00:00"}, func() {
 		p = append(p, 1)
 	})
-	AddToTaskList(tk)
-	fmt.Println(tk.executeTime)
+	AddToTaskList(tks...)
+	for _, tk := range tks {
+		fmt.Println(tk.ExecuteTime())
+	}
 }
 
 func TestMonthTask(t *testing.T) {
+	var tks []Tasker
+	tks, _ = NewMonthTasks([]string{"1 00:00:00", "1 1:00:00", "3 08:00:00"}, func() {
 
+	})
+	for _, tk := range tks {
+		fmt.Println(tk.ExecuteTime())
+	}
+	time.Sleep(time.Second)
 }

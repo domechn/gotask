@@ -39,3 +39,38 @@ func main()  {
      gotask.AddToTaskList(tkMonth)
 }
 ```
+
+> 多任务
+
+```go
+package main
+
+import (
+    "github.com/domgoer/gotask"
+)
+
+func main()  {
+     tkDays,_ := gotask.NewDayTasks([]string{"12:20:00","10:10:10"},func() {
+            // do ... 
+     })
+     tkMonths,_ := gotask.NewMonthTasks([]string{"20 12:20:00","21 10:10:10"},func() {
+             // do ... 
+      })
+     gotask.AddToTaskList(tkDays...)
+     gotask.AddToTaskList(tkMonths...)
+}
+```
+
+### 停止
+
+```go
+package main
+
+import (
+    "github.com/domgoer/gotask"
+)
+
+func main()  {
+     gotask.Stop("XXXXX")
+}
+```

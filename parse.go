@@ -81,5 +81,9 @@ func (p *monthParse) Parse(s string) (time.Time, error) {
 	}
 	now := time.Now()
 	t := time.Date(now.Year(), now.Month(), day, hour, minute, second, 0, now.Location())
+	// 排除部分月没有31号
+	if t.Month() != now.Month() {
+		t.AddDate(0, 1, 0)
+	}
 	return t, nil
 }

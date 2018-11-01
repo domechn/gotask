@@ -62,7 +62,7 @@ type DayTask struct {
 }
 
 // NewDayTask 新建日任务
-func NewDayTask(tm string, do func()) (*DayTask, error) {
+func NewDayTask(tm string, do func()) (Tasker, error) {
 	uid, _ := uuid.NewV4()
 	pt := newTimeParser(dayParseType)
 	begin, err := pt.Parse(tm)
@@ -77,6 +77,18 @@ func NewDayTask(tm string, do func()) (*DayTask, error) {
 		do:          do,
 		executeTime: begin,
 	}, nil
+}
+
+func NewDayTasks(tms []string, do func()) ([]Tasker, error) {
+	var ts []Tasker
+	for _, tm := range tms {
+		dt, err := NewDayTask(tm, do)
+		if err != nil {
+			return nil, err
+		}
+		ts = append(ts, dt)
+	}
+	return ts, nil
 }
 
 func (d *DayTask) ID() string {
@@ -122,6 +134,18 @@ func NewMonthTask(tm string, do func()) (Tasker, error) {
 	}, nil
 }
 
+func NewMonthTasks(tms []string, do func()) ([]Tasker, error) {
+	var ts []Tasker
+	for _, tm := range tms {
+		mt, err := NewMonthTask(tm, do)
+		if err != nil {
+			return nil, err
+		}
+		ts = append(ts, mt)
+	}
+	return ts, nil
+}
+
 func (m *MonthTask) ID() string {
 	return m.id
 }
@@ -131,26 +155,9 @@ func (m *MonthTask) ExecuteTime() time.Time {
 }
 
 func (m *MonthTask) RefreshExecuteTime() {
-	now := time.Now()
-	month := now.Month()
-	day := getMonthDay(int(month))
-	if day == 28 && now.YearDay() == 366 {
-		day = 29
-	}
-	m.executeTime = m.executeTime.Add(time.Duration(day) * time.Hour * 24)
+	m.executeTime = m.executeTime.AddDate(0, 1, 0)
 }
 
 func (m *MonthTask) Do() func() {
 	return m.do
-}
-
-func getMonthDay(month int) int {
-	switch month {
-	case 1, 3, 5, 7, 8, 10, 12:
-		return 31
-	case 4, 6, 9, 11:
-		return 30
-	default:
-		return 28
-	}
 }

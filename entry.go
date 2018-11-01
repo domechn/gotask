@@ -37,11 +37,13 @@ func init() {
 }
 
 // AddToTaskList 加入任务列表
-func AddToTaskList(t Tasker) {
-	if t == nil {
-	        return
+func AddToTaskList(ts ...Tasker) {
+	for _, t := range ts {
+		if t == nil {
+			return
+		}
+		addC <- t
 	}
-	addC <- t
 }
 
 func (tl *taskList) addToTaskList(t Tasker) {
