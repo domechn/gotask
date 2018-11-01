@@ -92,7 +92,7 @@ func NewDayTasks(tms []string, do func()) ([]Tasker, error) {
 }
 
 func (d *DayTask) ID() string {
-	return d.ID()
+	return d.id
 }
 
 func (d *DayTask) ExecuteTime() time.Time {
@@ -104,7 +104,7 @@ func (d *DayTask) RefreshExecuteTime() {
 }
 
 func (d *DayTask) Do() func() {
-	return d.Do()
+	return d.do
 }
 
 // MonthTask 月任务

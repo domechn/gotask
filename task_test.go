@@ -27,23 +27,37 @@ func TestTask(t *testing.T) {
 }
 
 func TestDayTask(t *testing.T) {
-	var p []int
 	tks, _ := NewDayTasks([]string{"00:00:00", "12:00:00", "08:00:00"}, func() {
-		p = append(p, 1)
+
 	})
 	AddToTaskList(tks...)
 	for _, tk := range tks {
 		fmt.Println(tk.ExecuteTime())
+		fmt.Println(tk.ID())
+		tk.RefreshExecuteTime()
+		if tk.ExecuteTime().Day()-time.Now().Day() < 1 {
+			t.Errorf("RefreshExecuteTime() appears error")
+		}
+		tk.Do()()
 	}
 }
 
 func TestMonthTask(t *testing.T) {
 	var tks []Tasker
 	tks, _ = NewMonthTasks([]string{"1 00:00:00", "1 1:00:00", "3 08:00:00"}, func() {
-
+		fmt.Println(time.Now())
 	})
 	for _, tk := range tks {
 		fmt.Println(tk.ExecuteTime())
+		fmt.Println(tk.ID())
+		tk.RefreshExecuteTime()
+		a := int(time.Now().Month()) - int(tk.ExecuteTime().Month())
+		if a > -2 {
+			if a > 10 {
+				t.Errorf("RefreshExecuteTime() appears error")
+			}
+		}
+		tk.Do()()
 	}
 	time.Sleep(time.Second)
 }
