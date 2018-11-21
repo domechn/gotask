@@ -8,6 +8,7 @@ package gotask
 import (
 	"fmt"
 	"sort"
+	"sync"
 	"time"
 )
 
@@ -25,10 +26,16 @@ type taskList struct {
 	taskers Tasks
 }
 
+type intervalChange struct {
+	task     *Task
+	interval time.Duration
+}
+
 var (
 	tasks *taskList
-	addC  = make(chan Tasker)
-	stopC = make(chan string)
+	editC = make(chan interface{})
+	stopC = make(chan string, 1024)
+	wg    = &sync.WaitGroup{}
 )
 
 func init() {
@@ -36,21 +43,23 @@ func init() {
 	go doAllTask()
 }
 
-// AddToTaskList 加入任务列表
+// AddToTaskList add the task to the execution list
 func AddToTaskList(ts ...Tasker) {
+	wg.Add(1)
 	for _, t := range ts {
 		if t == nil {
-			return
+			continue
 		}
-		addC <- t
+		editC <- t
 	}
 }
 
 func (tl *taskList) addToTaskList(t Tasker) {
 	tl.taskers = append(tl.taskers, t)
+	wg.Done()
 }
 
-// Stop 通过task的id停止对应task
+// Stop stop corresponding tasks through the id of task
 func Stop(id string) {
 	stopC <- id
 }
@@ -63,16 +72,29 @@ func (tl *taskList) stop(id string) {
 	}
 }
 
+// ChangeInterval changes the interval between the tasks specified by the ID,
+// Apply only to polling tasks.
 func ChangeInterval(id string, interval time.Duration) error {
+	wg.Wait()
 	tsk := tasks.get(id)
-	if tsk != nil {
-		t, ok := tsk.(*Task)
-		if !ok {
-			return fmt.Errorf("该类型不支持修改执行间隔")
-		}
-		t.SetInterval(interval)
+	if tsk == nil {
+		return fmt.Errorf("Task does not exist")
 	}
+	var task *Task
+	var ok bool
+	if task, ok = tsk.(*Task); !ok {
+		return fmt.Errorf("This type does not support modifying the execution interval")
+	}
+	editC <- &intervalChange{
+		task:     task,
+		interval: interval,
+	}
+
 	return nil
+}
+
+func changeInterval(i *intervalChange) {
+	i.task.SetInterval(i.interval)
 }
 
 func (tl *taskList) get(id string) Tasker {
@@ -107,10 +129,14 @@ func doAllTask() {
 			select {
 			case now = <-timer.C:
 				doNestedTask()
-			case t := <-addC:
+			case edit := <-editC:
 				now = time.Now()
 				timer.Stop()
-				tasks.addToTaskList(t)
+				if t, ok := edit.(Tasker); ok {
+					tasks.addToTaskList(t)
+				} else if ic, ok := edit.(*intervalChange); ok {
+					changeInterval(ic)
+				}
 			case id := <-stopC:
 				tasks.stop(id)
 			}

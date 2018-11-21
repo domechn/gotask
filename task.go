@@ -36,8 +36,14 @@ func (t *Task) ExecuteTime() time.Time {
 	return t.executeTime
 }
 
-func (t *Task) SetInterval(time time.Duration) {
-	t.interval = time
+// SetInterval
+func (t *Task) SetInterval(td time.Duration) {
+	t.interval = td
+	t.changeExecuteTime(td)
+}
+
+func (t *Task) changeExecuteTime(td time.Duration) {
+	t.executeTime = time.Now().Add(td)
 }
 
 func (t *Task) RefreshExecuteTime() {

@@ -42,6 +42,28 @@ func TestDayTask(t *testing.T) {
 	}
 }
 
+func init() {
+	tasks = &taskList{}
+	go doAllTask()
+}
+
+func TestChangeInterval(t *testing.T) {
+	var p []int
+	tk := NewTask(time.Second*20, func() {
+		p = append(p, 1)
+		fmt.Println(time.Now())
+	})
+	AddToTaskList(tk)
+	fmt.Println(ChangeInterval(tk.ID(), time.Second*2))
+	select {
+	case <-time.After(time.Second*20 + time.Millisecond*100):
+		if len(p) != 1 {
+			t.Errorf("TestTask() fail , need len : %d , actually len : %d", 1, len(p))
+		}
+		return
+	}
+}
+
 func TestMonthTask(t *testing.T) {
 	var tks []Tasker
 	tks, _ = NewMonthTasks([]string{"1 00:00:00", "1 1:00:00", "3 08:00:00"}, func() {
