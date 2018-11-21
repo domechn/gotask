@@ -34,7 +34,7 @@ type intervalChange struct {
 var (
 	tasks *taskList
 	editC = make(chan interface{})
-	stopC = make(chan string, 1024)
+	stopC = make(chan string)
 	wg    = &sync.WaitGroup{}
 )
 
