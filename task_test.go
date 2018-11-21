@@ -49,15 +49,15 @@ func init() {
 
 func TestChangeInterval(t *testing.T) {
 	var p []int
-	tk := NewTask(time.Second*1, func() {
+	tk := NewTask(time.Second*2, func() {
 		p = append(p, 1)
 	})
 	AddToTaskList(tk)
-	ChangeInterval(tk.ID(), time.Second*2)
+	ChangeInterval(tk.ID(), time.Second*1)
 	select {
 	case <-time.After(time.Second*2 + time.Millisecond*100):
-		if len(p) != 1 {
-			t.Errorf("TestTask() fail , need len : %d , actually len : %d", 1, len(p))
+		if len(p) != 2 {
+			t.Errorf("TestTask() fail , need len : %d , actually len : %d", 2, len(p))
 		}
 		return
 	}

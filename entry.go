@@ -45,11 +45,11 @@ func init() {
 
 // AddToTaskList add the task to the execution list
 func AddToTaskList(ts ...Tasker) {
-	wg.Add(1)
 	for _, t := range ts {
 		if t == nil {
 			continue
 		}
+		wg.Add(1)
 		editC <- t
 	}
 }
@@ -75,10 +75,13 @@ func (tl *taskList) stop(id string) {
 // ChangeInterval changes the interval between the tasks specified by the ID,
 // Apply only to polling tasks.
 func ChangeInterval(id string, interval time.Duration) error {
-	wg.Wait()
 	tsk := tasks.get(id)
 	if tsk == nil {
-		return fmt.Errorf("Task does not exist")
+		wg.Wait()
+		tsk = tasks.get(id)
+		if tsk == nil {
+			return fmt.Errorf("Task does not exist")
+		}
 	}
 	var task *Task
 	var ok bool
