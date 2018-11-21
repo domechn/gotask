@@ -71,6 +71,6 @@ import (
 )
 
 func main()  {
-     gotask.Stop("XXXXX")
+     gotask.Stop("task.ID()")
 }
 ```
