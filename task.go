@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// Task 轮询任务
+// Task Polling tasks
 type Task struct {
 	id string
 
@@ -21,7 +21,7 @@ type Task struct {
 	do func()
 }
 
-// NewTask 新建轮询任务
+// NewTask create a new polling task
 func NewTask(t time.Duration, do func()) Tasker {
 	uid := uuid.NewV4()
 	return &Task{
@@ -32,11 +32,12 @@ func NewTask(t time.Duration, do func()) Tasker {
 	}
 }
 
+// ExecuteTime gets the next execution time
 func (t *Task) ExecuteTime() time.Time {
 	return t.executeTime
 }
 
-// SetInterval
+// SetInterval modify execution interval
 func (t *Task) SetInterval(td time.Duration) {
 	t.interval = td
 	t.changeExecuteTime(td)
@@ -46,14 +47,17 @@ func (t *Task) changeExecuteTime(td time.Duration) {
 	t.executeTime = time.Now().Add(td)
 }
 
+// RefreshExecuteTime refresh execution interval
 func (t *Task) RefreshExecuteTime() {
 	t.executeTime = t.executeTime.Add(t.interval)
 }
 
+// ID return taskID
 func (t *Task) ID() string {
 	return t.id
 }
 
+// Do return Task Function
 func (t *Task) Do() func() {
 	return t.do
 }
@@ -67,7 +71,7 @@ type DayTask struct {
 	do func()
 }
 
-// NewDayTask 新建日任务
+// NewDayTask create a new daily task
 func NewDayTask(tm string, do func()) (Tasker, error) {
 	uid := uuid.NewV4()
 	pt := newTimeParser(dayParseType)
@@ -85,6 +89,7 @@ func NewDayTask(tm string, do func()) (Tasker, error) {
 	}, nil
 }
 
+// NewDayTasks create new daily tasks
 func NewDayTasks(tms []string, do func()) ([]Tasker, error) {
 	var ts []Tasker
 	for _, tm := range tms {
@@ -113,7 +118,7 @@ func (d *DayTask) Do() func() {
 	return d.do
 }
 
-// MonthTask 月任务
+// MonthTask create monthly task
 type MonthTask struct {
 	id string
 
@@ -122,7 +127,7 @@ type MonthTask struct {
 	do func()
 }
 
-// NewMonthTask 初始化一个每月执行的函数
+// NewMonthTask initialize a function that executes each month
 func NewMonthTask(tm string, do func()) (Tasker, error) {
 	uid := uuid.NewV4()
 	pt := newTimeParser(monthParseType)
@@ -140,6 +145,7 @@ func NewMonthTask(tm string, do func()) (Tasker, error) {
 	}, nil
 }
 
+// NewMonthTasks initialize a function that executes each month
 func NewMonthTasks(tms []string, do func()) ([]Tasker, error) {
 	var ts []Tasker
 	for _, tm := range tms {

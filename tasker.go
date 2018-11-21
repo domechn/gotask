@@ -9,18 +9,18 @@ import (
 	"time"
 )
 
-// Tasker 任务接口类
+// Tasker interface class
 type Tasker interface {
 
-	// ID 返回执行函数的ID
+	// ID Returns the ID of the execution function
 	ID() string
 
-	// ExecuteTime 获取下一次执行时间
+	// ExecuteTime Gets the next execution time
 	ExecuteTime() time.Time
 
-	// RefreshExecuteTime 刷新执行时间
+	// RefreshExecuteTime Refresh execution time
 	RefreshExecuteTime()
 
-	// Do 返回执行函数
+	// Do Return execution function
 	Do() func()
 }
