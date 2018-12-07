@@ -6,12 +6,16 @@
 package gotask
 
 import (
+	"fmt"
 	"github.com/satori/go.uuid"
+	"sync"
 	"time"
 )
 
 // Task Polling tasks
 type Task struct {
+	sync.RWMutex
+
 	id string
 
 	executeTime time.Time
@@ -22,23 +26,30 @@ type Task struct {
 }
 
 // NewTask create a new polling task
-func NewTask(t time.Duration, do func()) Tasker {
+func NewTask(t time.Duration, do func()) (Tasker, error) {
+	if t < time.Millisecond {
+		return nil, fmt.Errorf("the execution interval is too short")
+	}
 	uid := uuid.NewV4()
 	return &Task{
 		id:          uid.String(),
 		do:          do,
 		interval:    t,
 		executeTime: time.Now().Add(t),
-	}
+	}, nil
 }
 
 // ExecuteTime gets the next execution time
 func (t *Task) ExecuteTime() time.Time {
+	t.RLock()
+	defer t.RUnlock()
 	return t.executeTime
 }
 
 // SetInterval modify execution interval
 func (t *Task) SetInterval(td time.Duration) {
+	t.Lock()
+	defer t.Unlock()
 	t.interval = td
 	t.changeExecuteTime(td)
 }
@@ -49,16 +60,22 @@ func (t *Task) changeExecuteTime(td time.Duration) {
 
 // RefreshExecuteTime refresh execution interval
 func (t *Task) RefreshExecuteTime() {
+	t.Lock()
+	t.Unlock()
 	t.executeTime = t.executeTime.Add(t.interval)
 }
 
 // ID return taskID
 func (t *Task) ID() string {
+	t.RLock()
+	defer t.RUnlock()
 	return t.id
 }
 
 // Do return Task Function
 func (t *Task) Do() func() {
+	t.RLock()
+	defer t.RUnlock()
 	return t.do
 }
 

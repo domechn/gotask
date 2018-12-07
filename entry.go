@@ -80,13 +80,13 @@ func ChangeInterval(id string, interval time.Duration) error {
 		wg.Wait()
 		tsk = tasks.get(id)
 		if tsk == nil {
-			return fmt.Errorf("Task does not exist")
+			return fmt.Errorf("task does not exist")
 		}
 	}
 	var task *Task
 	var ok bool
 	if task, ok = tsk.(*Task); !ok {
-		return fmt.Errorf("This type does not support modifying the execution interval")
+		return fmt.Errorf("this type does not support modifying the execution interval")
 	}
 	editC <- &intervalChange{
 		task:     task,

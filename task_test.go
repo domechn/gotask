@@ -13,7 +13,7 @@ import (
 
 func TestTask(t *testing.T) {
 	var p []int
-	tk := NewTask(time.Second, func() {
+	tk, _ := NewTask(time.Second, func() {
 		p = append(p, 1)
 	})
 	AddToTaskList(tk)
@@ -49,7 +49,7 @@ func init() {
 
 func TestChangeInterval(t *testing.T) {
 	var p []int
-	tk := NewTask(time.Second*2, func() {
+	tk, _ := NewTask(time.Second*2, func() {
 		p = append(p, 1)
 	})
 	AddToTaskList(tk)
