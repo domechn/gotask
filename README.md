@@ -19,6 +19,28 @@ func main()  {
 }
 ```
 
+### 动态修改轮询任务的执行时间
+
+```go
+package main
+
+import (
+    "time"
+    
+    "github.com/domgoer/gotask"
+)
+
+func main()  {
+     tk := gotask.NewTask(time.Second*20,func() {
+            // do ... 
+     })
+     gotask.AddToTaskList(tk)
+     
+     // 修改执行时间，立即生效
+     tk.SetInterval(time.Second*30)
+}
+```
+
 ### 定时任务
 
 ```go
