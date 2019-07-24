@@ -27,7 +27,7 @@ func TestTask(t *testing.T) {
 }
 
 func TestDayTask(t *testing.T) {
-	tks, _ := NewDayTasks([]string{"00:00:00", "12:00:00", "08:00:00"}, func() {
+	tks, _ := NewDailyTasks([]string{"00:00:00", "12:00:00", "08:00:00"}, func() {
 
 	})
 	AddToTaskList(tks...)
@@ -49,15 +49,16 @@ func init() {
 
 func TestChangeInterval(t *testing.T) {
 	var p []int
-	tk, _ := NewTask(time.Second*2, func() {
+	tk, _ := NewTask(time.Second*100, func() {
 		p = append(p, 1)
 	})
 	AddToTaskList(tk)
-	ChangeInterval(tk.ID(), time.Second*1)
+	ChangeInterval(tk.ID(), time.Millisecond*200)
+	tc := time.After(time.Second)
 	select {
-	case <-time.After(time.Second*2 + time.Millisecond*100):
-		if len(p) != 2 {
-			t.Errorf("TestTask() fail , need len : %d , actually len : %d", 2, len(p))
+	case <-tc:
+		if len(p) == 0 {
+			t.Errorf("TestTask() fail , need len : 1, actually len : %d", len(p))
 		}
 		return
 	}

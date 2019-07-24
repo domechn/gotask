@@ -1,8 +1,11 @@
 # gotask
 
+[![Build Status](https://travis-ci.org/domgoer/gotask.svg?branch=master)](https://travis-ci.org/domgoer/gotask)
+[![codecov](https://codecov.io/gh/domgoer/gotask/branch/master/graph/badge.svg)](https://codecov.io/gh/domgoer/gotask)
+
 ### 轮询任务
 
-```go
+``` go
 package main
 
 import (
@@ -25,7 +28,7 @@ func main()  {
 
 ### 动态修改轮询任务的执行时间
 
-```go
+``` go
 package main
 
 import (
@@ -47,7 +50,7 @@ func main()  {
 
 ### 定时任务
 
-```go
+``` go
 package main
 
 import (
@@ -55,10 +58,10 @@ import (
 )
 
 func main()  {
-     tkDay,_ := gotask.NewDayTask("12:20:00",func() {
+     tkDay,_ := gotask.NewDailyTask("12:20:00",func() {
             // do ... 
      })
-     tkMonth,_ := gotask.NewMonthTask("20 12:20:00",func() {
+     tkMonth,_ := gotask.NewMonthlyTask("20 12:20:00",func() {
              // do ... 
       })
      gotask.AddToTaskList(tkDay)
@@ -68,7 +71,7 @@ func main()  {
 
 > 多任务
 
-```go
+``` go
 package main
 
 import (
@@ -76,10 +79,10 @@ import (
 )
 
 func main()  {
-     tkDays,_ := gotask.NewDayTasks([]string{"12:20:00","10:10:10"},func() {
+     tkDays,_ := gotask.NewDailyTasks([]string{"12:20:00","10:10:10"},func() {
             // do ... 
      })
-     tkMonths,_ := gotask.NewMonthTasks([]string{"20 12:20:00","21 10:10:10"},func() {
+     tkMonths,_ := gotask.NewMonthlyTasks([]string{"20 12:20:00","21 10:10:10"},func() {
              // do ... 
       })
      gotask.AddToTaskList(tkDays...)
@@ -89,7 +92,7 @@ func main()  {
 
 ### 停止
 
-```go
+``` go
 package main
 
 import (
@@ -100,3 +103,4 @@ func main()  {
      gotask.Stop("task.ID()")
 }
 ```
+

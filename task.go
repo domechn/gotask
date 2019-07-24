@@ -7,7 +7,6 @@ package gotask
 
 import (
 	"fmt"
-	"github.com/satori/go.uuid"
 	"sync"
 	"time"
 )
@@ -30,9 +29,9 @@ func NewTask(t time.Duration, do func()) (Tasker, error) {
 	if t < time.Millisecond {
 		return nil, fmt.Errorf("the execution interval is too short")
 	}
-	uid := uuid.NewV4()
+	idStr := RandStringBytesMaskImprSrc(20)
 	return &Task{
-		id:          uid.String(),
+		id:          idStr,
 		do:          do,
 		interval:    t,
 		executeTime: time.Now().Add(t),
@@ -79,8 +78,8 @@ func (t *Task) Do() func() {
 	return t.do
 }
 
-// DayTask 日任务
-type DayTask struct {
+// DailyTask run every day
+type DailyTask struct {
 	id string
 
 	executeTime time.Time
@@ -88,9 +87,9 @@ type DayTask struct {
 	do func()
 }
 
-// NewDayTask create a new daily task
-func NewDayTask(tm string, do func()) (Tasker, error) {
-	uid := uuid.NewV4()
+// NewDailyTask create a new daily task
+func NewDailyTask(tm string, do func()) (Tasker, error) {
+	idStr := RandStringBytesMaskImprSrc(20)
 	pt := newTimeParser(dayParseType)
 	begin, err := pt.Parse(tm)
 	if err != nil {
@@ -99,18 +98,18 @@ func NewDayTask(tm string, do func()) (Tasker, error) {
 	if begin.Before(time.Now()) {
 		begin = begin.Add(time.Hour * 24)
 	}
-	return &DayTask{
-		id:          uid.String(),
+	return &DailyTask{
+		id:          idStr,
 		do:          do,
 		executeTime: begin,
 	}, nil
 }
 
-// NewDayTasks create new daily tasks
-func NewDayTasks(tms []string, do func()) ([]Tasker, error) {
+// NewDailyTasks create new daily tasks
+func NewDailyTasks(tms []string, do func()) ([]Tasker, error) {
 	var ts []Tasker
 	for _, tm := range tms {
-		dt, err := NewDayTask(tm, do)
+		dt, err := NewDailyTask(tm, do)
 		if err != nil {
 			return nil, err
 		}
@@ -119,19 +118,23 @@ func NewDayTasks(tms []string, do func()) ([]Tasker, error) {
 	return ts, nil
 }
 
-func (d *DayTask) ID() string {
+// ID returns task id
+func (d *DailyTask) ID() string {
 	return d.id
 }
 
-func (d *DayTask) ExecuteTime() time.Time {
+// ExecuteTime returns executeTime
+func (d *DailyTask) ExecuteTime() time.Time {
 	return d.executeTime
 }
 
-func (d *DayTask) RefreshExecuteTime() {
+// RefreshExecuteTime change excuteTime
+func (d *DailyTask) RefreshExecuteTime() {
 	d.executeTime = d.executeTime.Add(time.Hour * 24)
 }
 
-func (d *DayTask) Do() func() {
+// Do daily task
+func (d *DailyTask) Do() func() {
 	return d.do
 }
 
@@ -146,7 +149,7 @@ type MonthTask struct {
 
 // NewMonthTask initialize a function that executes each month
 func NewMonthTask(tm string, do func()) (Tasker, error) {
-	uid := uuid.NewV4()
+	idStr := RandStringBytesMaskImprSrc(20)
 	pt := newTimeParser(monthParseType)
 	begin, err := pt.Parse(tm)
 	if err != nil {
@@ -156,7 +159,7 @@ func NewMonthTask(tm string, do func()) (Tasker, error) {
 		begin = begin.AddDate(0, 1, 0)
 	}
 	return &MonthTask{
-		id:          uid.String(),
+		id:          idStr,
 		do:          do,
 		executeTime: begin,
 	}, nil
@@ -175,18 +178,22 @@ func NewMonthTasks(tms []string, do func()) ([]Tasker, error) {
 	return ts, nil
 }
 
+// ID return task id
 func (m *MonthTask) ID() string {
 	return m.id
 }
 
+// ExecuteTime return excuteTime
 func (m *MonthTask) ExecuteTime() time.Time {
 	return m.executeTime
 }
 
+// RefreshExecuteTime change executeTime
 func (m *MonthTask) RefreshExecuteTime() {
 	m.executeTime = m.executeTime.AddDate(0, 1, 0)
 }
 
+// Do monthly task
 func (m *MonthTask) Do() func() {
 	return m.do
 }
