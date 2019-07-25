@@ -6,14 +6,21 @@
 package gotask
 
 import (
-	"fmt"
+	"errors"
 	"sort"
 	"sync"
 	"time"
 )
 
+var (
+	// ErrTaskNotFound cannot found task by id
+	ErrTaskNotFound = errors.New("task does not exist")
+	// ErrTaskTypeInValid only polling task can modify interval
+	ErrTaskTypeInValid = errors.New("this type does not support modifying the execution interval")
+)
+
 // Tasks 任务列表
-type Tasks []Tasker
+type Tasks []*Task
 
 func (s Tasks) Len() int      { return len(s) }
 func (s Tasks) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
@@ -22,7 +29,7 @@ func (s Tasks) Less(i, j int) bool {
 }
 
 type taskList struct {
-	// 所有任务列表
+	// all tasks
 	taskers Tasks
 }
 
@@ -32,10 +39,10 @@ type intervalChange struct {
 }
 
 var (
-	tasks *taskList
-	editC = make(chan interface{})
-	stopC = make(chan string)
-	wg    = &sync.WaitGroup{}
+	tasks   *taskList
+	editC   = make(chan interface{})
+	removeC = make(chan string)
+	wg      = &sync.WaitGroup{}
 )
 
 func init() {
@@ -44,7 +51,7 @@ func init() {
 }
 
 // AddToTaskList add the task to the execution list
-func AddToTaskList(ts ...Tasker) {
+func AddToTaskList(ts ...*Task) {
 	for _, t := range ts {
 		if t == nil {
 			continue
@@ -54,19 +61,19 @@ func AddToTaskList(ts ...Tasker) {
 	}
 }
 
-func (tl *taskList) addToTaskList(t Tasker) {
+func (tl *taskList) addToTaskList(t *Task) {
 	tl.taskers = append(tl.taskers, t)
 	wg.Done()
 }
 
-// Stop stop corresponding tasks through the id of task
-func Stop(id string) {
-	stopC <- id
+// Remove remove corresponding tasks through the id of task
+func Remove(id string) {
+	removeC <- id
 }
 
-func (tl *taskList) stop(id string) {
+func (tl *taskList) remove(id string) {
 	for k, v := range tl.taskers {
-		if v.ID() == id {
+		if v.id == id {
 			tl.taskers = append(tl.taskers[:k], tl.taskers[k+1:]...)
 		}
 	}
@@ -75,38 +82,66 @@ func (tl *taskList) stop(id string) {
 // ChangeInterval changes the interval between the tasks specified by the ID,
 // Apply only to polling tasks.
 func ChangeInterval(id string, interval time.Duration) error {
-	tsk := tasks.get(id)
-	if tsk == nil {
-		wg.Wait()
-		tsk = tasks.get(id)
-		if tsk == nil {
-			return fmt.Errorf("task does not exist")
-		}
+	tsk, err := tasks.getConcurrent(id)
+	if err != nil {
+		return err
 	}
-	var task *Task
-	var ok bool
-	if task, ok = tsk.(*Task); !ok {
-		return fmt.Errorf("this type does not support modifying the execution interval")
+	if tsk.taskType != polling {
+		return ErrTaskTypeInValid
 	}
 	editC <- &intervalChange{
-		task:     task,
+		task:     tsk,
 		interval: interval,
 	}
 
 	return nil
 }
 
-func changeInterval(i *intervalChange) {
-	i.task.SetInterval(i.interval)
+// Pause the running task, it only returns error
+// when can not found task
+func Pause(id string) error {
+	tsk, err := tasks.getConcurrent(id)
+	if err != nil {
+		return err
+	}
+	tsk.pause()
+	return nil
 }
 
-func (tl *taskList) get(id string) Tasker {
+// Resume the paused task, it only returns error
+// when can not found task
+func Resume(id string) error {
+	tsk, err := tasks.getConcurrent(id)
+	if err != nil {
+		return err
+	}
+	tsk.resume()
+	return nil
+}
+
+func changeInterval(i *intervalChange) {
+	i.task.setInterval(i.interval)
+}
+
+func (tl *taskList) get(id string) *Task {
 	for _, v := range tl.taskers {
-		if v.ID() == id {
+		if v.id == id {
 			return v
 		}
 	}
 	return nil
+}
+
+func (tl *taskList) getConcurrent(id string) (*Task, error) {
+	tsk := tasks.get(id)
+	if tsk == nil {
+		wg.Wait()
+		tsk = tasks.get(id)
+		if tsk == nil {
+			return nil, ErrTaskNotFound
+		}
+	}
+	return tsk, nil
 }
 
 func doAllTask() {
@@ -135,13 +170,13 @@ func doAllTask() {
 			case edit := <-editC:
 				now = time.Now()
 				timer.Stop()
-				if t, ok := edit.(Tasker); ok {
+				if t, ok := edit.(*Task); ok {
 					tasks.addToTaskList(t)
 				} else if ic, ok := edit.(*intervalChange); ok {
 					changeInterval(ic)
 				}
-			case id := <-stopC:
-				tasks.stop(id)
+			case id := <-removeC:
+				tasks.remove(id)
 			}
 			break
 		}
@@ -151,8 +186,10 @@ func doAllTask() {
 func doNestedTask() {
 	for _, v := range tasks.taskers {
 		if v.ExecuteTime().Before(time.Now()) {
-			go v.Do()()
-			v.RefreshExecuteTime()
+			if !v.isPaused() {
+				go v.do()
+			}
+			v.refreshExecuteTime()
 		} else {
 			return
 		}

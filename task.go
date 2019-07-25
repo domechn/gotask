@@ -11,103 +11,72 @@ import (
 	"time"
 )
 
+const (
+	idLen       = 20
+	dayInterval = time.Hour * 24
+)
+
+const (
+	polling = iota
+	daily
+	monthly
+)
+
 // Task Polling tasks
 type Task struct {
 	sync.RWMutex
 
-	id string
-
-	executeTime time.Time
-
-	interval time.Duration
+	id              string
+	executeTime     time.Time
+	nextExecuteTime func(time.Time) time.Time
+	paused          bool
+	taskType        int
 
 	do func()
 }
 
 // NewTask create a new polling task
-func NewTask(t time.Duration, do func()) (Tasker, error) {
+func NewTask(t time.Duration, do func()) (*Task, error) {
 	if t < time.Millisecond {
 		return nil, fmt.Errorf("the execution interval is too short")
 	}
-	idStr := RandStringBytesMaskImprSrc(20)
+	idStr := RandStringBytesMaskImprSrc(idLen)
 	return &Task{
-		id:          idStr,
-		do:          do,
-		interval:    t,
+		id: idStr,
+		do: do,
+		nextExecuteTime: func(tm time.Time) time.Time {
+			return tm.Add(t)
+		},
 		executeTime: time.Now().Add(t),
+		taskType:    polling,
 	}, nil
 }
 
-// ExecuteTime gets the next execution time
-func (t *Task) ExecuteTime() time.Time {
-	t.RLock()
-	defer t.RUnlock()
-	return t.executeTime
-}
-
-// SetInterval modify execution interval
-func (t *Task) SetInterval(td time.Duration) {
-	t.Lock()
-	defer t.Unlock()
-	t.interval = td
-	t.changeExecuteTime(td)
-}
-
-func (t *Task) changeExecuteTime(td time.Duration) {
-	t.executeTime = time.Now().Add(td)
-}
-
-// RefreshExecuteTime refresh execution interval
-func (t *Task) RefreshExecuteTime() {
-	t.Lock()
-	t.Unlock()
-	t.executeTime = t.executeTime.Add(t.interval)
-}
-
-// ID return taskID
-func (t *Task) ID() string {
-	t.RLock()
-	defer t.RUnlock()
-	return t.id
-}
-
-// Do return Task Function
-func (t *Task) Do() func() {
-	t.RLock()
-	defer t.RUnlock()
-	return t.do
-}
-
-// DailyTask run every day
-type DailyTask struct {
-	id string
-
-	executeTime time.Time
-
-	do func()
-}
-
 // NewDailyTask create a new daily task
-func NewDailyTask(tm string, do func()) (Tasker, error) {
-	idStr := RandStringBytesMaskImprSrc(20)
+func NewDailyTask(tm string, do func()) (*Task, error) {
+	idStr := RandStringBytesMaskImprSrc(idLen)
 	pt := newTimeParser(dayParseType)
 	begin, err := pt.Parse(tm)
 	if err != nil {
 		return nil, err
 	}
 	if begin.Before(time.Now()) {
-		begin = begin.Add(time.Hour * 24)
+		begin = begin.Add(dayInterval)
 	}
-	return &DailyTask{
+	return &Task{
 		id:          idStr,
 		do:          do,
 		executeTime: begin,
+		nextExecuteTime: func(tm time.Time) time.Time {
+			return tm.Add(dayInterval)
+		},
+		taskType: daily,
 	}, nil
 }
 
 // NewDailyTasks create new daily tasks
-func NewDailyTasks(tms []string, do func()) ([]Tasker, error) {
-	var ts []Tasker
+func NewDailyTasks(tms []string, do func()) ([]*Task, error) {
+	var ts []*Task
 	for _, tm := range tms {
 		dt, err := NewDailyTask(tm, do)
 		if err != nil {
@@ -118,38 +87,9 @@ func NewDailyTasks(tms []string, do func()) ([]Tasker, error) {
 	return ts, nil
 }
 
-// ID returns task id
-func (d *DailyTask) ID() string {
-	return d.id
-}
-
-// ExecuteTime returns executeTime
-func (d *DailyTask) ExecuteTime() time.Time {
-	return d.executeTime
-}
-
-// RefreshExecuteTime change excuteTime
-func (d *DailyTask) RefreshExecuteTime() {
-	d.executeTime = d.executeTime.Add(time.Hour * 24)
-}
-
-// Do daily task
-func (d *DailyTask) Do() func() {
-	return d.do
-}
-
-// MonthTask create monthly task
-type MonthTask struct {
-	id string
-
-	executeTime time.Time
-
-	do func()
-}
-
-// NewMonthTask initialize a function that executes each month
-func NewMonthTask(tm string, do func()) (Tasker, error) {
-	idStr := RandStringBytesMaskImprSrc(20)
+// NewMonthlyTask initialize a function that executes each month
+func NewMonthlyTask(tm string, do func()) (*Task, error) {
+	idStr := RandStringBytesMaskImprSrc(idLen)
 	pt := newTimeParser(monthParseType)
 	begin, err := pt.Parse(tm)
 	if err != nil {
@@ -158,18 +98,30 @@ func NewMonthTask(tm string, do func()) (Tasker, error) {
 	if begin.Before(time.Now()) {
 		begin = begin.AddDate(0, 1, 0)
 	}
-	return &MonthTask{
+	return &Task{
 		id:          idStr,
 		do:          do,
 		executeTime: begin,
+		nextExecuteTime: func(tm time.Time) time.Time {
+			step := 1
+		PASS:
+			newTime := tm.AddDate(0, step, 0)
+			if newTime.Day() != tm.Day() {
+				step++
+				// some months may not include this day
+				goto PASS
+			}
+			return newTime
+		},
+		taskType: monthly,
 	}, nil
 }
 
-// NewMonthTasks initialize a function that executes each month
-func NewMonthTasks(tms []string, do func()) ([]Tasker, error) {
-	var ts []Tasker
+// NewMonthlyTasks initialize a function that executes each month
+func NewMonthlyTasks(tms []string, do func()) ([]*Task, error) {
+	var ts []*Task
 	for _, tm := range tms {
-		mt, err := NewMonthTask(tm, do)
+		mt, err := NewMonthlyTask(tm, do)
 		if err != nil {
 			return nil, err
 		}
@@ -178,22 +130,51 @@ func NewMonthTasks(tms []string, do func()) ([]Tasker, error) {
 	return ts, nil
 }
 
-// ID return task id
-func (m *MonthTask) ID() string {
-	return m.id
+// ExecuteTime gets the next execution time
+func (t *Task) ExecuteTime() time.Time {
+	t.RLock()
+	defer t.RUnlock()
+	return t.executeTime
 }
 
-// ExecuteTime return excuteTime
-func (m *MonthTask) ExecuteTime() time.Time {
-	return m.executeTime
+// SetInterval modify execution interval only for polling task
+func (t *Task) setInterval(td time.Duration) {
+	t.Lock()
+	defer t.Unlock()
+	t.nextExecuteTime = func(tm time.Time) time.Time {
+		return tm.Add(td)
+	}
+	t.executeTime = time.Now().Add(td)
 }
 
-// RefreshExecuteTime change executeTime
-func (m *MonthTask) RefreshExecuteTime() {
-	m.executeTime = m.executeTime.AddDate(0, 1, 0)
+// refreshExecuteTime refresh execution interval
+func (t *Task) refreshExecuteTime() {
+	t.Lock()
+	defer t.Unlock()
+	t.executeTime = t.nextExecuteTime(t.executeTime)
 }
 
-// Do monthly task
-func (m *MonthTask) Do() func() {
-	return m.do
+// ID return taskID
+func (t *Task) ID() string {
+	return t.id
+}
+
+// pause the runnning task
+func (t *Task) pause() {
+	t.Lock()
+	defer t.Unlock()
+	t.paused = true
+}
+
+func (t *Task) isPaused() bool {
+	t.RLock()
+	defer t.RUnlock()
+	return t.paused
+}
+
+// resume the paused task
+func (t *Task) resume() {
+	t.Lock()
+	defer t.Unlock()
+	t.paused = false
 }
