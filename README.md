@@ -90,7 +90,7 @@ func main()  {
 }
 ```
 
-### 停止
+### 暂停
 
 ``` go
 package main
@@ -100,7 +100,35 @@ import (
 )
 
 func main()  {
-     gotask.Stop("task.ID()")
+     gotask.Pause("task.ID()")
+}
+```
+
+### 恢复
+
+``` go
+package main
+
+import (
+    "github.com/domgoer/gotask"
+)
+
+func main()  {
+     gotask.Resume("task.ID()")
+}
+```
+
+### 移除
+
+``` go
+package main
+
+import (
+    "github.com/domgoer/gotask"
+)
+
+func main()  {
+     gotask.Remove("task.ID()")
 }
 ```
 
