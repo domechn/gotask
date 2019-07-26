@@ -12,10 +12,12 @@ import (
 type parserType string
 
 const (
-	dayParseType   = parserType("day")
-	monthParseType = parserType("month")
+	dailyParseType   = parserType("day")
+	monthlyParseType = parserType("month")
+	yearlyParseType  = parserType("year")
 )
 
+// Parser to pase the timestring
 type Parser interface {
 	// Parse 解析定时执行的时间
 	Parse(string) (time.Time, error)
@@ -23,10 +25,12 @@ type Parser interface {
 
 func newTimeParser(pt parserType) Parser {
 	switch pt {
-	case dayParseType:
-		return newDayParse()
-	case monthParseType:
-		return newMonthParse()
+	case dailyParseType:
+		return newdailyParse()
+	case monthlyParseType:
+		return newmonthlyParse()
+	case yearlyParseType:
+		return newyearlyParse()
 	}
 	return nil
 }

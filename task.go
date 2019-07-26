@@ -20,6 +20,31 @@ const (
 	polling = iota
 	daily
 	monthly
+	yearly
+)
+
+var (
+	monthlyNextFunc = func(tm time.Time) time.Time {
+		step := 1
+	PASS:
+		newTime := tm.AddDate(0, step, 0)
+		if newTime.Day() != tm.Day() {
+			step++
+			// some months may not include this day
+			goto PASS
+		}
+		return newTime
+	}
+	yearlyNextFunc = func(tm time.Time) time.Time {
+		step := 1
+	PASS:
+		newTime := tm.AddDate(step, 0, 0)
+		if newTime.Month() != tm.Month() {
+			step++
+			goto PASS
+		}
+		return newTime
+	}
 )
 
 // Task Polling tasks
@@ -55,7 +80,7 @@ func NewTask(t time.Duration, do func()) (*Task, error) {
 // NewDailyTask create a new daily task
 func NewDailyTask(tm string, do func()) (*Task, error) {
 	idStr := RandStringBytesMaskImprSrc(idLen)
-	pt := newTimeParser(dayParseType)
+	pt := newTimeParser(dailyParseType)
 	begin, err := pt.Parse(tm)
 	if err != nil {
 		return nil, err
@@ -90,30 +115,20 @@ func NewDailyTasks(tms []string, do func()) ([]*Task, error) {
 // NewMonthlyTask initialize a function that executes each month
 func NewMonthlyTask(tm string, do func()) (*Task, error) {
 	idStr := RandStringBytesMaskImprSrc(idLen)
-	pt := newTimeParser(monthParseType)
+	pt := newTimeParser(monthlyParseType)
 	begin, err := pt.Parse(tm)
 	if err != nil {
 		return nil, err
 	}
 	if begin.Before(time.Now()) {
-		begin = begin.AddDate(0, 1, 0)
+		begin = monthlyNextFunc(begin)
 	}
 	return &Task{
-		id:          idStr,
-		do:          do,
-		executeTime: begin,
-		nextExecuteTime: func(tm time.Time) time.Time {
-			step := 1
-		PASS:
-			newTime := tm.AddDate(0, step, 0)
-			if newTime.Day() != tm.Day() {
-				step++
-				// some months may not include this day
-				goto PASS
-			}
-			return newTime
-		},
-		taskType: monthly,
+		id:              idStr,
+		do:              do,
+		executeTime:     begin,
+		nextExecuteTime: monthlyNextFunc,
+		taskType:        monthly,
 	}, nil
 }
 
@@ -122,6 +137,39 @@ func NewMonthlyTasks(tms []string, do func()) ([]*Task, error) {
 	var ts []*Task
 	for _, tm := range tms {
 		mt, err := NewMonthlyTask(tm, do)
+		if err != nil {
+			return nil, err
+		}
+		ts = append(ts, mt)
+	}
+	return ts, nil
+}
+
+// NewYearlyTask initialize a function that executes each month
+func NewYearlyTask(tm string, do func()) (*Task, error) {
+	idStr := RandStringBytesMaskImprSrc(idLen)
+	pt := newTimeParser(yearlyParseType)
+	begin, err := pt.Parse(tm)
+	if err != nil {
+		return nil, err
+	}
+	if begin.Before(time.Now()) {
+		begin = yearlyNextFunc(begin)
+	}
+	return &Task{
+		id:              idStr,
+		do:              do,
+		executeTime:     begin,
+		nextExecuteTime: yearlyNextFunc,
+		taskType:        yearly,
+	}, nil
+}
+
+// NewYearlyTasks initialize a function that executes each month
+func NewYearlyTasks(tms []string, do func()) ([]*Task, error) {
+	var ts []*Task
+	for _, tm := range tms {
+		mt, err := NewYearlyTask(tm, do)
 		if err != nil {
 			return nil, err
 		}

@@ -106,7 +106,7 @@ func TestPauseAndResume(t *testing.T) {
 		t.Errorf("TestTask() fail , need len : 0, actually len : %d", len(p))
 	}
 	Resume(tk.ID())
-	time.Sleep(time.Millisecond * 200)
+	time.Sleep(time.Millisecond * 500)
 	if len(p) == 0 {
 		t.Errorf("TestTask() fail , need len : !=0, actually len : %d", len(p))
 	}

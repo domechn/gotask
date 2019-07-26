@@ -64,8 +64,10 @@ func main()  {
      tkMonth,_ := gotask.NewMonthlyTask("20 12:20:00",func() {
              // do ... 
       })
+     tkYear,_ := gotask.NewYearlyTask("03-01 12:20:00",func(){})
      gotask.AddToTaskList(tkDay)
      gotask.AddToTaskList(tkMonth)
+     gotask.AddToTaskList(tkYear)
 }
 ```
 

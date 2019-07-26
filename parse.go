@@ -13,77 +13,105 @@ import (
 )
 
 var (
-	errParseTime = errors.New("parse time error")
+	// ErrParseTime time format failed
+	ErrParseTime = errors.New("parse time error")
 )
 
 var defaultValue = time.Time{}
 
-type dayParse struct {
+type dailyParse struct {
 }
 
-func newDayParse() Parser {
-	return &dayParse{}
+func newdailyParse() Parser {
+	return &dailyParse{}
 }
 
 // Parse 接收格式 "hh:mm:ss",返回begintime
-func (p *dayParse) Parse(s string) (time.Time, error) {
-	ss := strings.Split(s, ":")
-	if len(ss) != 3 {
-		return defaultValue, errParseTime
-	}
-	var hour, minute, second int
-	var err error
-	if hour, err = strconv.Atoi(ss[0]); err != nil {
-		return defaultValue, errParseTime
-	}
-	if minute, err = strconv.Atoi(ss[1]); err != nil {
-		return defaultValue, errParseTime
-	}
-	if second, err = strconv.Atoi(ss[2]); err != nil {
-		return defaultValue, errParseTime
+func (p *dailyParse) Parse(s string) (time.Time, error) {
+	tm, err := time.Parse("15:04:05", s)
+	if err != nil {
+		return defaultValue, ErrParseTime
 	}
 	now := time.Now()
-	t := time.Date(now.Year(), now.Month(), now.Day(), hour, minute, second, 0, now.Location())
+	t := time.Date(now.Year(), now.Month(), now.Day(), tm.Hour(), tm.Minute(), tm.Second(), 0, now.Location())
 	return t, nil
 }
 
-type monthParse struct {
+type monthlyParse struct {
 }
 
-func newMonthParse() Parser {
-	return &monthParse{}
+func newmonthlyParse() Parser {
+	return &monthlyParse{}
 }
 
-// Parse 接收格式 dd mm:hh:ss   dd为每月几号，如果需要每月最后一天 dd=-1
-func (p *monthParse) Parse(s string) (time.Time, error) {
-	s2 := strings.Split(s, " ")
+// Parse 接收格式 dd hh:mm:ss   dd为每月几号，如果需要每月最后一天 dd=-1
+func (p *monthlyParse) Parse(s string) (res time.Time, err error) {
+	s2 := strings.SplitN(s, " ", 2)
 	if len(s2) != 2 {
-		return defaultValue, errParseTime
+		err = ErrParseTime
+		return
 	}
-	ss := strings.Split(s2[1], ":")
-	if len(ss) != 3 {
-		return defaultValue, errParseTime
+	var dt time.Time
+	dt, err = newdailyParse().Parse(s2[1])
+	if err != nil {
+		return
 	}
 	var day int
-	var hour, minute, second int
-	var err error
 	if day, err = strconv.Atoi(s2[0]); err != nil {
-		return defaultValue, errParseTime
+		err = ErrParseTime
+		return
 	}
-	if hour, err = strconv.Atoi(ss[0]); err != nil {
-		return defaultValue, errParseTime
-	}
-	if minute, err = strconv.Atoi(ss[1]); err != nil {
-		return defaultValue, errParseTime
-	}
-	if second, err = strconv.Atoi(ss[2]); err != nil {
-		return defaultValue, errParseTime
+	if day < 0 || day > 31 {
+		err = ErrParseTime
+		return
 	}
 	now := time.Now()
-	t := time.Date(now.Year(), now.Month(), day, hour, minute, second, 0, now.Location())
-	// 排除部分月没有31号
-	if t.Month() != now.Month() {
-		t.AddDate(0, 1, 0)
+	step := 0
+	t := time.Date(now.Year(), now.Month(), day, dt.Hour(), dt.Minute(), dt.Second(), 0, now.Location())
+	if t.Day() != day {
+		step++
+		t = t.AddDate(0, step, 0)
 	}
 	return t, nil
+}
+
+type yearlyParse struct {
+}
+
+func newyearlyParse() Parser {
+	return &yearlyParse{}
+}
+
+// Parse 接收格式 MM-dd hh:mm:ss   dd为每月几号，如果需要每月最后一天 dd=-1
+func (p *yearlyParse) Parse(s string) (res time.Time, err error) {
+	ss := strings.SplitN(s, "-", 2)
+	if len(ss) != 2 {
+		err = ErrParseTime
+		return
+	}
+	var mt time.Time
+	mt, err = newmonthlyParse().Parse(ss[1])
+	if err != nil {
+		return
+	}
+	month, err := strconv.Atoi(ss[0])
+	if err != nil {
+		err = ErrParseTime
+		return
+	}
+	if month < 1 || month > 12 {
+		err = ErrParseTime
+		return
+	}
+
+	if month != 2 && mt.Day() != 29 {
+		return time.Date(mt.Year(), time.Month(month), mt.Day(), mt.Hour(), mt.Minute(), mt.Second(), 0, mt.Location()), nil
+	}
+
+	year := mt.Year()
+	for !(year%4 == 0 && year%100 != 0) {
+		year++
+	}
+	res = time.Date(year, time.Month(month), mt.Day(), mt.Hour(), mt.Minute(), mt.Second(), 0, mt.Location())
+	return
 }
