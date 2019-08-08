@@ -15,7 +15,7 @@ import (
 )
 
 func main()  {
-     tk := gotask.NewTask(time.Second*20,func() {
+     tk,_ := gotask.NewTask(time.Second*20,func() {
             // do ... 
      })
      gotask.AddToTaskList(tk)
@@ -38,7 +38,7 @@ import (
 )
 
 func main()  {
-     tk := gotask.NewTask(time.Second*20,func() {
+     tk,_ := gotask.NewTask(time.Second*20,func() {
             // do ... 
      })
      gotask.AddToTaskList(tk)
